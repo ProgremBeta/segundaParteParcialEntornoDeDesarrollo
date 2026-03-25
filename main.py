@@ -1,16 +1,25 @@
-from fastapi import FastAPI 
-from dotenv import load_dotenv 
-from google import genai 
+import os
+from fastapi import FastAPI, HTTPException
+from dotenv import load_dotenv
+from google import genai
 
-app = FastAPI() 
-KEY = load_dotenv("APY_KEY") 
+load_dotenv()
 
-@app.get("/llm/{prompt}") 
+api_key = os.getenv("API_KEY")
+if not api_key:
+    raise RuntimeError("Falta API_KEY en el entorno")
 
-async def read_root(prompt): 
-    # The client gets the API key from the environment variable `GEMINI_API_KEY`. client = genai.Client() 
-    response = client.models.generate_content( 
-    model="gemini-3-flash-preview", contents=prompt )
-    
-    print(response.text) 
-    return {"Respuesta": response.text} 
+client = genai.Client(api_key=api_key)
+
+app = FastAPI()
+
+@app.get("/llm/{prompt}")
+async def read_root(prompt: str):
+    try:
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview",
+            contents=prompt
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return {"Respuesta": response.text}
